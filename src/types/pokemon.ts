@@ -39,20 +39,14 @@ export interface Pokemon {
 }
 
 export function toPokemon({
-  id,
-  name,
-  height,
-  weight,
   types,
   abilities,
   stats,
   sprites,
+  ...rest // id, name, height, weight — carried over as-is
 }: PokemonDetailResponse): Pokemon {
   return {
-    id,
-    name,
-    height,
-    weight,
+    ...rest,
     sprite:
       sprites.other?.["official-artwork"]?.front_default ??
       sprites.front_default,
