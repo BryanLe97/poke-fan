@@ -18,7 +18,7 @@ export function BrowsePage() {
   // Filtering/pagination/fetching all key off the debounced value, not the
   // raw keystrokes — typing "charizard" re-suspends the grid once, not
   // once per letter.
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const debouncedSearch = useDebouncedValue(search, 1000);
   const [requestedPage, setRequestedPage] = useState(1);
 
   return (

@@ -38,20 +38,27 @@ export interface Pokemon {
   stats: { name: string; value: number }[];
 }
 
-export function toPokemon(detail: PokemonDetailResponse): Pokemon {
+export function toPokemon({
+  id,
+  name,
+  height,
+  weight,
+  types,
+  abilities,
+  stats,
+  sprites,
+}: PokemonDetailResponse): Pokemon {
   return {
-    id: detail.id,
-    name: detail.name,
+    id,
+    name,
+    height,
+    weight,
     sprite:
-      detail.sprites.other?.["official-artwork"]?.front_default ??
-      detail.sprites.front_default,
-    types: detail.types
-      .sort((a, b) => a.slot - b.slot)
-      .map((t) => t.type.name),
-    height: detail.height,
-    weight: detail.weight,
-    abilities: detail.abilities.map((a) => a.ability.name),
-    stats: detail.stats.map((s) => ({ name: s.stat.name, value: s.base_stat })),
+      sprites.other?.["official-artwork"]?.front_default ??
+      sprites.front_default,
+    types: types.sort((a, b) => a.slot - b.slot).map((t) => t.type.name),
+    abilities: abilities.map((a) => a.ability.name),
+    stats: stats.map((s) => ({ name: s.stat.name, value: s.base_stat })),
   };
 }
 
