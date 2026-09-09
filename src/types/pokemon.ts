@@ -26,7 +26,6 @@ export interface PokemonDetailResponse {
   };
 }
 
-/** Shape our UI actually works with, trimmed down from the API response. */
 export interface Pokemon {
   id: number;
   name: string;
@@ -38,26 +37,6 @@ export interface Pokemon {
   stats: { name: string; value: number }[];
 }
 
-export function toPokemon({
-  types,
-  abilities,
-  stats,
-  sprites,
-  ...rest // id, name, height, weight — carried over as-is
-}: PokemonDetailResponse): Pokemon {
-  return {
-    ...rest,
-    sprite:
-      sprites.other?.["official-artwork"]?.front_default ??
-      sprites.front_default,
-    types: types.sort((a, b) => a.slot - b.slot).map((t) => t.type.name),
-    abilities: abilities.map((a) => a.ability.name),
-    stats: stats.map((s) => ({ name: s.stat.name, value: s.base_stat })),
-  };
-}
-
-/** The trimmed record we persist for a favourite — enough to render a card
- * offline, without re-fetching the whole Pokemon just to show a list. */
 export interface FavouritePokemon {
   id: number;
   name: string;

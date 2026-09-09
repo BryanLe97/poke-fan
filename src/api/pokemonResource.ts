@@ -1,5 +1,6 @@
 import { fetchAllPokemonNames, fetchPokemonByName } from "./pokeapi";
-import { toPokemon, type NamedApiResource, type Pokemon } from "../types/pokemon";
+import type { NamedApiResource, Pokemon } from "../types/pokemon";
+import { toPokemon } from "../utils/toPokemon";
 
 // Suspense reads state out of a *promise*, not a hook — `use()` suspends
 // while it's pending, returns its value once resolved, and re-throws its
