@@ -4,7 +4,12 @@ import type {
   PokemonListResponse,
 } from "../types/pokemon";
 
-const BASE_URL = "https://pokeapi.co/api/v2";
+// Configurable rather than hardcoded so the endpoint can be swapped (a
+// staging mirror, a proxy in front of PokeAPI, etc.) without touching code.
+// Falls back to the public PokeAPI instance so `npm run dev` works with zero
+// setup — see .env.example. CI supplies this via a GitHub Actions repo
+// variable (see .github/workflows/deploy.yml).
+const BASE_URL = import.meta.env.VITE_POKEAPI_BASE_URL ?? "https://pokeapi.co/api/v2";
 
 export class ApiError extends Error {
   status?: number;

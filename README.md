@@ -12,7 +12,8 @@ Requirements: **Node.js 20+** (any recent LTS works) and npm.
 
 ```bash
 npm install
-npm run dev       # http://localhost:5173/poke-fan/
+cp .env.example .env   # optional — see "Configuration" below
+npm run dev             # http://localhost:5173/poke-fan/
 ```
 
 Other scripts:
@@ -23,6 +24,25 @@ npm run preview   # serve the production build locally
 npm run lint      # oxlint
 npm test          # vitest (store unit tests)
 ```
+
+### Configuration
+
+| Variable                  | Required | Default                        |
+| -------------------------- | -------- | ------------------------------- |
+| `VITE_POKEAPI_BASE_URL`    | No       | `https://pokeapi.co/api/v2`     |
+
+The API base URL isn't hardcoded in `src/api/pokeapi.ts` — it reads
+`import.meta.env.VITE_POKEAPI_BASE_URL`, falling back to the public
+PokeAPI instance so a fresh clone works with zero setup. Copy
+`.env.example` to `.env` to override it locally (e.g. against a proxy or
+mock server). PokeAPI needs no API key, so nothing here is actually a
+secret, but keeping the endpoint out of source is what lets it change per
+environment without a code change or a redeploy of different source.
+CI/CD supplies the same variable at build time via a GitHub Actions repo
+**Variable** (Settings → Secrets and variables → Actions → Variables →
+`VITE_POKEAPI_BASE_URL`) rather than hardcoding it in the workflow file —
+see `.github/workflows/deploy.yml`. A real secret (an API key, say) would
+go through `secrets.*` instead of `vars.*` the same way.
 
 ## What it does
 
@@ -116,4 +136,6 @@ system font stack.
 GitHub Actions (`.github/workflows/deploy.yml`) lints, tests, and builds
 the app on every push to `main`, then deploys `dist/` to GitHub Pages via
 `actions/deploy-pages`. The Vite `base` and the router's `basename` are
-both set to `/poke-fan/` to match the project-pages URL.
+both set to `/poke-fan/` to match the project-pages URL. The build step
+injects `VITE_POKEAPI_BASE_URL` from a repo Variable — see
+[Configuration](#configuration) above.
