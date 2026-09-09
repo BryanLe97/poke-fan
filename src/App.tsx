@@ -1,11 +1,20 @@
+import { Route, Routes } from "react-router-dom";
+import { Layout } from "./components/Layout";
+import { BrowsePage } from "./pages/BrowsePage";
+import { FavouritesPage } from "./pages/FavouritesPage";
+import { PokemonDetailPage } from "./pages/PokemonDetailPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
+
 function App() {
-  // Placeholder — replaced by the routed app (Browse / Favourites / Pokemon
-  // detail pages) in the next commit. This checkpoint just proves the
-  // toolchain (Vite + React + TS + Tailwind) builds and runs.
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">
-      Poke Fan — scaffold checkpoint.
-    </main>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<BrowsePage />} />
+        <Route path="favourites" element={<FavouritesPage />} />
+        <Route path="pokemon/:name" element={<PokemonDetailPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
   );
 }
 
