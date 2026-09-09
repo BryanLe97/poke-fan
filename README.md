@@ -75,14 +75,29 @@ actions never mutate in place — every action returns a new object via
 spread, which is what makes the array of unit tests in
 `useFavouritesStore.test.ts` straightforward to write and trust.
 
-**Data layer separation.** `src/api/pokeapi.ts` is the only file that
-knows about PokeAPI's URLs and shapes; `src/hooks/` wraps it in two small
-hooks (`useAllPokemonNames`, `usePokemonDetails`) that own loading/error
-state and an in-memory cache; components and pages never call `fetch`
-directly. PokeAPI has no text-search endpoint, so search is implemented by
-fetching the ~1300-entry name index once (cached at module scope) and
-filtering it client-side — far cheaper than any alternative that hits the
-network per keystroke.
+**Data layer separation, via Suspense.** `src/api/pokeapi.ts` is the only
+file that knows about PokeAPI's URLs and shapes. `src/api/pokemonResource.ts`
+wraps it in a small promise cache (React 19's `use()` reads state out of a
+promise, not a hook), and `src/hooks/` exposes that as two one-line hooks
+(`useAllPokemonNames`, `usePokemonDetails`) — components and pages never
+call `fetch` directly, and never juggle `{ data, loading, error }` by hand.
+Each async section of a page is a `<Suspense>` boundary with its own
+`<ErrorBoundary>` next to it (`src/components/ErrorBoundary.tsx`), scoped
+tightly enough that, say, a failed fetch for one page of results shows an
+inline retry without also hiding Pagination or the search box. Retrying
+explicitly evicts the failed entry from the resource cache before clearing
+the boundary — the cache deliberately does *not* auto-evict on rejection,
+because that would race React's own Suspense retry (which needs to see the
+same rejected promise to surface the error at all) into an infinite
+re-fetch loop.
+
+PokeAPI has no text-search endpoint, so search is implemented by fetching
+the ~1300-entry name index once (cached for the session) and filtering it
+client-side — far cheaper than any alternative that hits the network per
+keystroke. The search input is additionally debounced
+(`useDebouncedValue`, 300ms) so the filtered list — and the Suspense
+boundary around the results grid — only recomputes once typing pauses,
+not on every keystroke.
 
 **Card component reuse.** `PokemonCard` takes only the four fields
 (`id`, `name`, `sprite`, `types`) it actually renders, so the same
