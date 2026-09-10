@@ -1,4 +1,5 @@
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAllPokemonNames } from "../hooks/useAllPokemonNames";
 import { usePokemonDetails } from "../hooks/usePokemonDetails";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
@@ -14,12 +15,52 @@ import { ErrorBoundary } from "../components/ErrorBoundary";
 const PAGE_SIZE = 24;
 
 export function BrowsePage() {
-  const [search, setSearch] = useState("");
-  // Filtering/pagination/fetching all key off the debounced value, not the
-  // raw keystrokes — typing "charizard" re-suspends the grid once, not
-  // once per letter.
-  const debouncedSearch = useDebouncedValue(search, 1000);
-  const [requestedPage, setRequestedPage] = useState(1);
+  // Search + page live in the URL (?q=&page=), not local state, so the
+  // browser's Back/Forward actually restores what you were looking at —
+  // and the page unmounting/remounting (e.g. after visiting a Pokemon's
+  // detail page) doesn't wipe them back to defaults.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const search = searchParams.get("q") ?? "";
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+
+  // The text box still needs its own fast-typing local state — writing to
+  // the URL on every keystroke would spam browser history and re-suspend
+  // the grid per letter. Only the *debounced* value is committed to the URL.
+  const [inputValue, setInputValue] = useState(search);
+  const debouncedInput = useDebouncedValue(inputValue, 1000);
+
+  // Keep the box in sync when `search` changes from outside typing — e.g.
+  // Back/Forward navigation, or landing on a shared/bookmarked URL.
+  useEffect(() => {
+    setInputValue(search);
+  }, [search]);
+
+  // Commit the debounced text to the URL once it actually differs from
+  // what's there — guards both the initial mount (debouncedInput and
+  // search start equal) and the round-trip after our own write below
+  // updates `search` to match, which would otherwise loop.
+  useEffect(() => {
+    if (debouncedInput === search) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (debouncedInput) next.set("q", debouncedInput);
+        else next.delete("q");
+        next.set("page", "1"); // a new search always starts back at page 1
+        return next;
+      },
+      { replace: true },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedInput]);
+
+  function goToPage(nextPage: number) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("page", String(nextPage));
+      return next;
+    });
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -33,13 +74,7 @@ export function BrowsePage() {
         </p>
       </div>
 
-      <SearchBar
-        value={search}
-        onChange={(value) => {
-          setSearch(value);
-          setRequestedPage(1);
-        }}
-      />
+      <SearchBar value={inputValue} onChange={setInputValue} />
 
       {/* Catches a failed name-index fetch — the one thing that would
           otherwise take down the whole results area. */}
@@ -55,11 +90,7 @@ export function BrowsePage() {
         )}
       >
         <Suspense fallback={<LoadingSkeletonGrid />}>
-          <PokedexResults
-            search={debouncedSearch}
-            requestedPage={requestedPage}
-            onPageChange={setRequestedPage}
-          />
+          <PokedexResults search={search} requestedPage={page} onPageChange={goToPage} />
         </Suspense>
       </ErrorBoundary>
     </div>
@@ -92,8 +123,8 @@ function PokedexResults({
   }
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  // A narrower result set than before can leave requestedPage pointing
-  // past the new last page — clamp here, at render time, instead of in an
+  // A stale/shared URL (or a narrower result set than before) can point
+  // past the last page — clamp here, at render time, instead of in an
   // effect that would need an extra render to correct itself.
   const page = Math.min(requestedPage, pageCount);
   const pageNames = filtered
