@@ -13,9 +13,9 @@ export function toPokemon({
     ...rest,
     sprite:
       sprites.other?.["official-artwork"]?.front_default ??
-      sprites.front_default,
-    types: types.sort((a, b) => a.slot - b.slot).map((t) => t.type.name),
-    abilities: abilities.map((a) => a.ability.name),
-    stats: stats.map((s) => ({ name: s.stat.name, value: s.base_stat })),
+      sprites.front_default, // fallback to the old sprite if official artwork is missing
+    types: types.sort((a, b) => a.slot - b.slot).map((t) => t.type.name), // sort by slot so the first type is always the primary type
+    abilities: abilities.map((a) => a.ability.name), // no need to track hidden vs. visible abilities in the UI
+    stats: stats.map((s) => ({ name: s.stat.name, value: s.base_stat })), // no need to track the stat's URL in the UI
   };
 }
