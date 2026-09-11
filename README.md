@@ -12,7 +12,7 @@ Requirements: **Node.js 20+** (any recent LTS works) and npm.
 
 ```bash
 npm install
-cp .env.example .env   # optional — see "Configuration" below
+cp .env.example .env   # required — fill in the real value, see "Configuration & security" below
 npm run dev             # http://localhost:5173/poke-fan/
 ```
 
@@ -25,132 +25,59 @@ npm run lint      # oxlint
 npm test          # vitest (store unit tests)
 ```
 
-### Configuration
+## Configuration & security
 
-| Variable                  | Required | Default                        |
-| -------------------------- | -------- | ------------------------------- |
-| `VITE_POKEAPI_BASE_URL`    | No       | `https://pokeapi.co/api/v2`     |
+The app talks to [PokeAPI](https://pokeapi.co/docs/v2) (`GET /pokemon`,
+`GET /pokemon/{name}`). Its base URL is never hardcoded in source
+(`src/api/pokeapi.ts` reads `import.meta.env.VITE_POKEAPI_BASE_URL`) —
+even though PokeAPI needs no key and nothing here is technically a
+secret, the intent is to treat *any* third-party endpoint as
+configuration, not something baked into the repo, so the same pattern
+holds the day it's a real credentialed API.
 
-The API base URL isn't hardcoded in `src/api/pokeapi.ts` — it reads
-`import.meta.env.VITE_POKEAPI_BASE_URL`, falling back to the public
-PokeAPI instance so a fresh clone works with zero setup. Copy
-`.env.example` to `.env` to override it locally (e.g. against a proxy or
-mock server). PokeAPI needs no API key, so nothing here is actually a
-secret, but keeping the endpoint out of source is what lets it change per
-environment without a code change or a redeploy of different source.
-CI/CD supplies the same variable at build time via a GitHub Actions repo
-**Variable** (Settings → Secrets and variables → Actions → Variables →
-`VITE_POKEAPI_BASE_URL`) rather than hardcoding it in the workflow file —
-see `.github/workflows/deploy.yml`. A real secret (an API key, say) would
-go through `secrets.*` instead of `vars.*` the same way.
+`.env.example` ships with an **empty** value on purpose:
 
-## What it does
+```bash
+cp .env.example .env
+# then fill in VITE_POKEAPI_BASE_URL yourself
+```
 
-- **Browse** (`/`) — the full Pokedex (via [PokeAPI](https://pokeapi.co)),
-  searchable by name, paginated, with a favourite toggle and type badges on
-  every card.
-- **Favourites** (`/favourites`) — everything you've starred, with a
-  sidebar to filter by group, create new groups, and delete groups.
-- **Pokemon detail** (`/pokemon/:name`) — stats, abilities, height/weight,
-  and the same favourite/group controls, reachable by clicking any card.
+Running locally requires you to supply the real value — nothing sensitive
+is committed as a "convenience default". Production doesn't need any of
+this setup: the live site already works, because CI/CD injects the value
+at build time from a GitHub Actions repository **Variable** (Settings →
+Secrets and variables → Actions → Variables → `VITE_POKEAPI_BASE_URL`),
+not from a hardcoded value in the workflow file — see
+`.github/workflows/deploy.yml`. A real credential (an API key, say) would
+go through `secrets.*` instead of `vars.*` the exact same way.
 
-Favouriting, grouping, and un-favouriting all persist to `localStorage`, so
-your collection is still there next time you open the site.
+## Why the frontend does its own pagination
 
-## Architectural decisions
+PokeAPI's list endpoint (`/pokemon?limit=&offset=`) does paginate
+server-side — it returns `next`/`previous` page URLs — but each entry is
+only `{ name, url }`, and there's no `?search=`/`?name=` filter (an
+unrecognised `name` query param is silently ignored, not rejected). Once
+the app filters that list by a search term client-side, the result no
+longer lines up with PokeAPI's own page boundaries — there's no way to
+ask the server for "page 2 of Pokemon matching 'char'". So the app
+fetches the full ~1300-entry name index once (cheap — just name+url
+pairs, cached for the session) and does its own filtering *and*
+pagination against that list on the frontend.
 
-**Vite + React + TypeScript**, no meta-framework. This is a client-only app
-against a public, unauthenticated API — there's no server-rendering,
-auth, or SEO need that would justify Next.js's extra surface area for a
-2-hour exercise. React Router handles the two-and-a-bit real pages
-(Browse, Favourites, Pokemon detail) with an actual `<Routes>` tree and a
-shared `Layout` (nav + skip link + footer), not a manual show/hide toggle.
+## Why Browse fetches each card independently, but the detail page uses a loader
 
-**Zustand** for the one piece of real app state — favourites and groups
-(`src/store/useFavouritesStore.ts`) — via a single store with the
-`persist` middleware writing to `localStorage`. Everything else (search
-text, current page, which group is selected) is local `useState` in the
-component that owns it; it never needed to be global, so it isn't. Store
-actions never mutate in place — every action returns a new object via
-spread, which is what makes the array of unit tests in
-`useFavouritesStore.test.ts` straightforward to write and trust.
+**Browse** doesn't fetch a page's 24 cards with one `Promise.all` —
+`Promise.all` rejects entirely the moment any single request fails,
+discarding every result that already succeeded, so one bad Pokemon would
+break the whole page. Instead, each grid slot has its own `<Suspense>` +
+`<ErrorBoundary>` pair (`PokemonCardSlot` in `BrowsePage.tsx`), fetching
+independently via `getPokemonDetail(name)`/`usePokemonDetail(name)`. A
+failed card shows its own `PokemonCardError` + Retry in just that slot,
+with the rest of the grid unaffected.
 
-**Data layer separation, via Suspense.** `src/api/pokeapi.ts` is the only
-file that knows about PokeAPI's URLs and shapes. `src/api/pokemonResource.ts`
-wraps it in a small promise cache (React 19's `use()` reads state out of a
-promise, not a hook), and `src/hooks/` exposes that as two one-line hooks
-(`useAllPokemonNames`, `usePokemonDetails`) — components and pages never
-call `fetch` directly, and never juggle `{ data, loading, error }` by hand.
-Each async section of a page is a `<Suspense>` boundary with its own
-`<ErrorBoundary>` next to it (`src/components/ErrorBoundary.tsx`), scoped
-tightly enough that, say, a failed fetch for one page of results shows an
-inline retry without also hiding Pagination or the search box. Retrying
-explicitly evicts the failed entry from the resource cache before clearing
-the boundary — the cache deliberately does *not* auto-evict on rejection,
-because that would race React's own Suspense retry (which needs to see the
-same rejected promise to surface the error at all) into an infinite
-re-fetch loop.
+**The Pokemon detail page** only ever needs one item, and it's usually
+already in the same cache from Browse — so instead of a hand-rolled
+Suspense boundary, it uses React Router's own `loader`
+(`pokemonDetailLoader` in `router.tsx`), awaited before the route
+renders, with `errorElement` for a failed fetch, via `<Outlet>`.
 
-PokeAPI has no text-search endpoint, so search is implemented by fetching
-the ~1300-entry name index once (cached for the session) and filtering it
-client-side — far cheaper than any alternative that hits the network per
-keystroke. The search input is additionally debounced
-(`useDebouncedValue`, 300ms) so the filtered list — and the Suspense
-boundary around the results grid — only recomputes once typing pauses,
-not on every keystroke.
-
-**Card component reuse.** `PokemonCard` takes only the four fields
-(`id`, `name`, `sprite`, `types`) it actually renders, so the same
-component works against a full `Pokemon` detail (Browse page) and the
-trimmed `FavouritePokemon` record persisted to storage (Favourites page)
-with no adapter code.
-
-**Tailwind CSS v4** for styling — fast to write, keeps responsive
-breakpoints and dark mode inline with the markup, and needs no separate
-design system for a UI this size. **lucide-react** for icons (star,
-search, folder, trash, chevrons) rather than text labels, and Google
-Fonts (Poppins for body text, Bangers for headings) rather than the
-system font stack.
-
-## Trade-offs made for the 2-hour scope
-
-- **No virtualization** on the Pokedex grid — pagination (24 per page)
-  keeps the DOM small instead. Fine for ~1300 Pokemon; would revisit for a
-  much larger dataset.
-- **Groups are flat, unnamed-uniqueness-unchecked** — you can create two
-  groups called "Team", and a group is just a list of Pokemon names (no
-  nesting, no reordering, no editing a group's Pokemon from the group
-  itself beyond the per-card picker).
-- **Testing is store-only.** Five Vitest unit tests cover the
-  favourites/groups store's logic (the highest-value, lowest-effort
-  target), but there are no component or E2E tests yet.
-- **No optimistic/offline handling beyond localStorage** — if PokeAPI is
-  down, Browse shows a retry-able error state, but there's no offline
-  cache of previously-viewed Pokemon beyond what's already favourited.
-
-## What I'd do with more time
-
-- Component tests (React Testing Library, already installed) for
-  `PokemonCard`, `GroupPicker`, and the search/pagination interaction on
-  `BrowsePage`; a couple of Playwright E2E flows (favourite → group →
-  reload → still there).
-- Debounce the search input and move filtering into a memoized selector
-  if the name index ever grows enough to matter.
-- Renaming/reordering groups from the Favourites sidebar, drag-and-drop
-  between groups, and duplicate-name prevention.
-- Infinite scroll (or a virtualized grid) as an alternative to numbered
-  pagination.
-- A proper 404/offline illustration and a service worker for true offline
-  support, since the data is otherwise static and cacheable.
-- Move the Pokemon type→colour map into design tokens shared with a
-  proper light/dark theme toggle (currently dark mode only follows the OS
-  setting).
-
-## Deployment
-
-GitHub Actions (`.github/workflows/deploy.yml`) lints, tests, and builds
-the app on every push to `main`, then deploys `dist/` to GitHub Pages via
-`actions/deploy-pages`. The Vite `base` and the router's `basename` are
-both set to `/poke-fan/` to match the project-pages URL. The build step
-injects `VITE_POKEAPI_BASE_URL` from a repo Variable — see
-[Configuration](#configuration) above.
