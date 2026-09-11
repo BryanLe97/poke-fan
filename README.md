@@ -6,6 +6,34 @@ Developer "Site Build" interview exercise.
 
 **Live site:** https://BryanLe97.github.io/poke-fan/
 
+## Requirements checklist
+
+**Minimum requirements**
+- Website & framework — 3 routed pages (`src/router.tsx`), Zustand for state (`useFavouritesStore.ts`).
+- API usage — PokeAPI, list + detail endpoints (`src/api/pokeapi.ts`).
+- Data features — search (`BrowsePage.tsx`), favourite/group (`PokemonCard.tsx`, `GroupPicker.tsx`), delete group/favourite (`FavouritesPage.tsx`).
+- Storage — `localStorage` via Zustand's `persist` middleware.
+- Hosting & code — GitHub Pages + GitHub Actions; a scaffold commit precedes the feature commits in history.
+- Documentation — this file
+
+**Optional**
+- Error handling — per-card `<ErrorBoundary>` + retry (`PokemonCardError.tsx`), name-index error (`ErrorState.tsx`), empty search (`EmptyState.tsx`).
+- Responsiveness — Tailwind responsive grid, mobile nav (`NavBar.tsx`).
+- Accessibility — skip link, `aria-label`/`aria-pressed`/`role="alert"`, `:focus-visible` (`Layout.tsx`, `PokemonCard.tsx`, `index.css`).
+- Testing — unit (`useFavouritesStore.test.ts`), component (`BrowsePage.test.tsx`), E2E (`e2e/`).
+- CI/CD — `.github/workflows/deploy.yml`, lint → test → E2E → deploy.
+
+## Evaluation factors — how this project addresses them
+
+1. **Architecture & Code Structure** — `pokeapi.ts` (HTTP transport) is separate from `pokemonResource.ts` (cache/Suspense integration); each Browse card fetches independently instead of one shared `Promise.all` (see "Why Browse fetches each card independently" below).
+2. **Framework familiarity** — React 19 `use()` + Suspense for data, React Router v7's data router (`loader`/`errorElement`) for the detail page, idiomatic Zustand selectors throughout.
+3. **What was built** — real router + nav menu (not a link swap), icons (`lucide-react`) for favourite/group/search rather than text, Poppins/Bangers via Google Fonts rather than the system stack.
+4. **State Management & Data Flow** — Zustand holds only favourites/groups; search and page live in the URL (`useSearchParams`) so Back/Forward work; everything else is local `useState`, never lifted further than it needs to be.
+5. **UX & Responsiveness** — responsive grid, mobile nav, loading skeletons, debounced search, isolated per-card error/retry, click-outside-to-close group picker.
+6. **Type Safety & Code Standards** — `strict: true`, oxlint clean, semantic HTML (`<nav>`, `<button>`, lists) throughout.
+7. **Communication & validation** — this README's "Why …" sections explain the non-obvious decisions as they were made, not written after the fact.
+8. **AI Usage** — built with Claude Code (Claude Sonnet 5) as a collaborative pair, including catching and fixing real bugs it introduced along the way (documented in the "Why …" sections above where relevant).
+
 ## Running locally
 
 Requirements: **Node.js 20+** (any recent LTS works) and npm.
