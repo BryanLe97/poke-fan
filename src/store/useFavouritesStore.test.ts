@@ -75,6 +75,29 @@ describe("useFavouritesStore", () => {
     expect(state().groups[groupId].pokemonNames).toEqual(["bulbasaur"]);
   });
 
+  it("createGroup reuses an existing group instead of making a duplicate", () => {
+    // The store owns this invariant itself (not just the GroupPicker UI
+    // that currently calls it) — any future caller that skips a UI-level
+    // check still can't end up with two groups sharing a name.
+    const state = () => useFavouritesStore.getState();
+    const firstId = state().createGroup("Starters");
+
+    const secondId = state().createGroup("Starters");
+
+    expect(secondId).toBe(firstId);
+    expect(Object.keys(state().groups)).toHaveLength(1);
+  });
+
+  it("createGroup's dedupe is case-insensitive", () => {
+    const state = () => useFavouritesStore.getState();
+    const firstId = state().createGroup("Team");
+
+    const secondId = state().createGroup("team");
+
+    expect(secondId).toBe(firstId);
+    expect(Object.keys(state().groups)).toHaveLength(1);
+  });
+
   it("removeFavourite deletes the favourite and un-groups it", () => {
     const state = () => useFavouritesStore.getState();
     state().toggleFavourite(bulbasaur);

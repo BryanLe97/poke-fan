@@ -66,6 +66,19 @@ export const useFavouritesStore = create<FavouritesState>()(
         }),
 
       createGroup: (name) => {
+        // Case-insensitive dedupe lives HERE, not just in the UI that
+        // currently calls this (GroupPicker only offers "+ Create" when no
+        // exact match exists) — a store action should hold its own
+        // invariants regardless of which caller reaches it, so a future
+        // caller that skips that UI check can't still end up with two
+        // groups named "Team" and "team". Returning the existing group's
+        // id (instead of throwing) keeps callers simple: they can always
+        // follow up with addToGroup(id, ...) without checking first.
+        const existing = Object.values(get().groups).find(
+          (g) => g.name.toLowerCase() === name.toLowerCase(),
+        );
+        if (existing) return existing.id;
+
         const id =
           typeof crypto !== "undefined" && "randomUUID" in crypto
             ? crypto.randomUUID()
