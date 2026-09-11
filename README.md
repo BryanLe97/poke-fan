@@ -87,6 +87,19 @@ fetches the full ~1300-entry name index once (cheap — just name+url
 pairs, cached for the session) and does its own filtering *and*
 pagination against that list on the frontend.
 
+## Why the fetch cache is a plain module-level Map
+
+`detailCache` (in `pokemonResource.ts`) is a `Map` at module scope, not
+component state — a singleton shared by every importer, so navigating
+away and back resolves from cache instead of re-fetching.
+
+Not worried about unbounded growth: the key is a Pokemon name, capped at
+PokeAPI's own ~1300 total — not arbitrary input — so it tops out at a
+few MB at most, and a reload clears it entirely anyway. That reasoning
+only holds because the key space is fixed; a cache keyed by something
+unbounded (a search query, a user id) would need an LRU or TTL cap
+instead.
+
 ## Why Browse fetches each card independently, but the detail page uses a loader
 
 **Browse** doesn't fetch a page's 24 cards with one `Promise.all` —
@@ -103,4 +116,11 @@ already in the same cache from Browse — so instead of a hand-rolled
 Suspense boundary, it uses React Router's own `loader`
 (`pokemonDetailLoader` in `router.tsx`), awaited before the route
 renders, with `errorElement` for a failed fetch, via `<Outlet>`.
+
+## CI/CD
+
+`.github/workflows/deploy.yml` runs on every push to `main`: install →
+lint → test → build → deploy to GitHub Pages. `deploy` needs `build`, so
+a lint or test failure stops the pipeline before a build even happens —
+nothing broken ever gets deployed.
 
