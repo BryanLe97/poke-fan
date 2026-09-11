@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import {
-  Link,
   useLoaderData,
+  useNavigate,
   useParams,
   useRevalidator,
   useRouteError,
@@ -14,17 +14,23 @@ import { TypeBadge } from "../components/TypeBadge";
 import { GroupPicker } from "../components/GroupPicker";
 import { ErrorState } from "../components/ErrorState";
 
-/** Shared by the success and error views so "Back to Browse" is always
- *  there, even when the route's errorElement replaces everything else. */
+/** Shared by the success and error views so "Back" is always there, even
+ *  when the route's errorElement replaces everything else. Uses browser
+ *  history (navigate(-1)) rather than a fixed link to "/", so it lands you
+ *  back wherever you actually came from — Browse with its search/page
+ *  still intact, Favourites, or anywhere else — same as the browser's own
+ *  Back button. */
 function DetailPageShell({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   return (
     <div className="flex flex-col gap-4">
-      <Link
-        to="/"
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
         className="inline-flex w-fit items-center gap-1 text-sm text-slate-500 hover:text-red-600 dark:text-slate-400"
       >
-        <ArrowLeft size={16} /> Back to Browse
-      </Link>
+        <ArrowLeft size={16} /> Back
+      </button>
       {children}
     </div>
   );
