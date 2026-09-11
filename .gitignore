@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Playwright E2E output
+test-results
+playwright-report
+blob-report
+
 # Local env overrides — see .env.example for the template that IS committed.
 .env
 .env.*

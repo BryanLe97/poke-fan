@@ -27,13 +27,17 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
-      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
         env:
           # Not a secret — PokeAPI needs no key — but kept out of the
           # source tree as a repo Variable (Settings → Secrets and
           # variables → Actions → Variables) instead of hardcoded, so the
           # endpoint can be swapped without a code change.
           VITE_POKEAPI_BASE_URL: ${{ vars.VITE_POKEAPI_BASE_URL }}
+      # test:e2e already built the app to run the E2E suite against (see
+      # playwright.config.ts's webServer) — deploy that same dist/ rather
+      # than building a second time.
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

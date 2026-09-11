@@ -120,7 +120,10 @@ renders, with `errorElement` for a failed fetch, via `<Outlet>`.
 ## CI/CD
 
 `.github/workflows/deploy.yml` runs on every push to `main`: install →
-lint → test → build → deploy to GitHub Pages. `deploy` needs `build`, so
-a lint or test failure stops the pipeline before a build even happens —
-nothing broken ever gets deployed.
+lint → unit tests → E2E tests (`npm run test:e2e`, Playwright — see
+`e2e/README.md` for why that suite is kept small) → deploy to GitHub
+Pages. `deploy` needs `build` to succeed, so any failing step stops the
+pipeline before a broken build ever gets deployed. The E2E run already
+builds the app to test against; that same `dist/` is what gets deployed,
+not a second build.
 
