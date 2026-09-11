@@ -25,6 +25,30 @@ npm run lint      # oxlint
 npm test          # vitest (store unit tests)
 ```
 
+## Framework and state management choices
+
+**Vite** — fast dev server and build for a React SPA, minimal config, no
+meta-framework overhead since this app has no SSR/auth/SEO need.
+
+**React** — satisfies requirement 1 (Website & Framework) directly;
+component-based, large ecosystem (React Router, Zustand, Testing
+Library all first-class).
+
+**Zustand over Redux**, chosen specifically to meet requirement 3 (Data
+Features — favourite/group entities) and requirement 4 (Storage —
+persist groups/favourites):
+- No `<Provider>` wrapper, no reducers/action types/dispatch — `create()`
+  returns a hook usable anywhere.
+- Selector-based subscriptions (`useFavouritesStore((s) => s.favourites)`)
+  so a component only re-renders when the exact slice it reads changes —
+  same benefit Redux's `useSelector` gives, without the boilerplate.
+- The `persist` middleware writes to `localStorage` automatically on
+  every state change, satisfying requirement 4 with no manual
+  `useEffect`/`localStorage.setItem` code.
+- Redux Toolkit's DevTools/time-travel debugging and slice/thunk
+  patterns solve problems this project's scope — one small domain model,
+  no complex async flows — doesn't actually have.
+
 ## Configuration & security
 
 The app talks to [PokeAPI](https://pokeapi.co/docs/v2) (`GET /pokemon`,
@@ -55,8 +79,7 @@ go through `secrets.*` instead of `vars.*` the exact same way.
 
 PokeAPI's list endpoint (`/pokemon?limit=&offset=`) does paginate
 server-side — it returns `next`/`previous` page URLs — but each entry is
-only `{ name, url }`, and there's no `?search=`/`?name=` filter (an
-unrecognised `name` query param is silently ignored, not rejected). Once
+only `{ name, url }`, and there's no `?search=`/`?name=` filter. Once
 the app filters that list by a search term client-side, the result no
 longer lines up with PokeAPI's own page boundaries — there's no way to
 ask the server for "page 2 of Pokemon matching 'char'". So the app
