@@ -1,12 +1,14 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAllPokemonNames } from "../hooks/useAllPokemonNames";
-import { usePokemonDetails } from "../hooks/usePokemonDetails";
+import { usePokemonDetail } from "../hooks/usePokemonDetail";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
-import { resetAllPokemonNames, resetPokemonDetails } from "../api/pokemonResource";
+import { resetAllPokemonNames, resetPokemonDetail } from "../api/pokemonResource";
 import { SearchBar } from "../components/SearchBar";
 import { Pagination } from "../components/Pagination";
 import { PokemonCard } from "../components/PokemonCard";
+import { PokemonCardSkeleton } from "../components/PokemonCardSkeleton";
+import { PokemonCardError } from "../components/PokemonCardError";
 import { LoadingSkeletonGrid } from "../components/LoadingSkeletonGrid";
 import { ErrorState } from "../components/ErrorState";
 import { EmptyState } from "../components/EmptyState";
@@ -133,37 +135,48 @@ function PokedexResults({
 
   return (
     <>
-      {/* Scoped to just the grid so a failed detail fetch for one page
-          doesn't take Pagination down with it — you can still page away
-          from whatever broke. */}
-      <ErrorBoundary
-        fallback={(error, retry) => (
-          <ErrorState
-            message={error.message}
-            onRetry={() => {
-              resetPokemonDetails(pageNames);
-              retry();
-            }}
-          />
-        )}
-      >
-        <Suspense fallback={<LoadingSkeletonGrid count={pageNames.length} />}>
-          <PokedexGrid names={pageNames} />
-        </Suspense>
-      </ErrorBoundary>
+      {/* Each card fetches (and can fail/retry) independently — no
+          Promise.all forcing the whole page to wait for its slowest
+          request, and one bad fetch never breaks the rest of the grid. */}
+      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        {pageNames.map((name) => (
+          <PokemonCardSlot key={name} name={name} />
+        ))}
+      </ul>
       <Pagination page={page} pageCount={pageCount} onChange={onPageChange} />
     </>
   );
 }
 
-function PokedexGrid({ names }: { names: string[] }) {
-  const pokemon = usePokemonDetails(names); // suspends per page/search batch
-
+/**
+ * One grid slot: suspends and can error independently of every other card.
+ * Keying by `name` (rather than the whole page's batch) also means a new
+ * search mounts fresh slots for its new names — a fresh mount always shows
+ * the Suspense fallback immediately, sidestepping React's "keep stale
+ * content visible during a transition" behaviour that a same-slot update
+ * would otherwise trigger.
+ */
+function PokemonCardSlot({ name }: { name: string }) {
   return (
-    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-      {pokemon.map((p) => (
-        <PokemonCard key={p.id} pokemon={p} />
-      ))}
-    </ul>
+    <ErrorBoundary
+      fallback={(error, retry) => (
+        <PokemonCardError
+          message={error.message}
+          onRetry={() => {
+            resetPokemonDetail(name);
+            retry();
+          }}
+        />
+      )}
+    >
+      <Suspense fallback={<PokemonCardSkeleton />}>
+        <PokemonCardLoader name={name} />
+      </Suspense>
+    </ErrorBoundary>
   );
+}
+
+function PokemonCardLoader({ name }: { name: string }) {
+  const pokemon = usePokemonDetail(name);
+  return <PokemonCard pokemon={pokemon} />;
 }

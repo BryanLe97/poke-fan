@@ -42,9 +42,14 @@ export function resetAllPokemonNames(): void {
 // --- Per-Pokemon detail ----------------------------------------------------
 
 const detailCache = new Map<string, Promise<Pokemon>>();
-const detailBatchCache = new Map<string, Promise<Pokemon[]>>();
 
-function getPokemonDetail(name: string): Promise<Pokemon> {
+/**
+ * A single Pokemon's full detail, cached by name. Each Browse card and the
+ * Pokemon detail page suspend on this individually — one card's fetch
+ * being slow (or failing) never blocks or breaks the others, since there's
+ * no combined Promise.all forcing everyone to wait for the same result.
+ */
+export function getPokemonDetail(name: string): Promise<Pokemon> {
   let promise = detailCache.get(name);
   if (!promise) {
     promise = fetchPokemonByName(name).then(toPokemon);
@@ -53,26 +58,8 @@ function getPokemonDetail(name: string): Promise<Pokemon> {
   return promise;
 }
 
-/**
- * Fetches full details for a batch of Pokemon names in parallel, cached by
- * the exact set requested — `Promise.all` preserves input order, so the
- * result lines up with `names` regardless of which one resolves first.
- * Revisiting the same page (or a detail page for an already-browsed
- * Pokemon) resolves instantly from `detailCache`/`detailBatchCache`.
- */
-export function getPokemonDetails(names: string[]): Promise<Pokemon[]> {
-  const key = names.join(",");
-  let promise = detailBatchCache.get(key);
-  if (!promise) {
-    promise = Promise.all(names.map(getPokemonDetail));
-    detailBatchCache.set(key, promise);
-  }
-  return promise;
-}
-
-/** Clears the cached batch (and its individual entries) so the next call
- *  re-fetches instead of replaying a stale rejection. */
-export function resetPokemonDetails(names: string[]): void {
-  detailBatchCache.delete(names.join(","));
-  for (const name of names) detailCache.delete(name);
+/** Clears one cached detail so the next call re-fetches instead of
+ *  replaying a stale rejection. */
+export function resetPokemonDetail(name: string): void {
+  detailCache.delete(name);
 }

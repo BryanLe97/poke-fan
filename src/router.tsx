@@ -5,14 +5,13 @@ import { BrowsePage } from "./pages/BrowsePage";
 import { FavouritesPage } from "./pages/FavouritesPage";
 import { PokemonDetailError, PokemonDetailPage } from "./pages/PokemonDetailPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
-import { getPokemonDetails } from "./api/pokemonResource";
+import { getPokemonDetail } from "./api/pokemonResource";
 
 // Kept here rather than in PokemonDetailPage.tsx: a loader is a plain
 // function, not a component, and co-locating it there breaks Fast Refresh
 // (oxlint's react(only-export-components) rule) for that file.
-async function pokemonDetailLoader({ params }: LoaderFunctionArgs) {
-  const [pokemon] = await getPokemonDetails([params.name!]);
-  return pokemon;
+function pokemonDetailLoader({ params }: LoaderFunctionArgs) {
+  return getPokemonDetail(params.name!);
 }
 
 export const router = createBrowserRouter(
@@ -33,7 +32,7 @@ export const router = createBrowserRouter(
     },
   ],
   {
-    // GitHub Pages serves this project from /poke-fan/ — see vite.config.ts.
+    // GitHub Pages serves this project from /poke-fan — see vite.config.ts.
     basename: "/poke-fan",
   },
 );

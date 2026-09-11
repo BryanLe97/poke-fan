@@ -7,7 +7,7 @@ import {
   useRouteError,
 } from "react-router-dom";
 import { ArrowLeft, Star } from "lucide-react";
-import { resetPokemonDetails } from "../api/pokemonResource";
+import { resetPokemonDetail } from "../api/pokemonResource";
 import type { Pokemon } from "../types/pokemon";
 import { useFavouritesStore } from "../store/useFavouritesStore";
 import { TypeBadge } from "../components/TypeBadge";
@@ -168,7 +168,7 @@ export function PokemonDetailError() {
       <ErrorState
         message={message}
         onRetry={() => {
-          resetPokemonDetails([name]);
+          resetPokemonDetail(name);
           revalidate();
         }}
       />
