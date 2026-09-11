@@ -15,6 +15,18 @@
       rel="stylesheet"
     />
     <title>Poke Fan</title>
+    <script>
+      // Pairs with public/404.html's redirect — restores the originally
+      // -requested URL (encoded in ?redirect=) via the History API before
+      // the router below ever reads window.location, so a hard reload or
+      // direct link on GitHub Pages lands on the right route instead of
+      // resetting to "/". A no-op for every normal navigation, since
+      // there's no ?redirect= param then.
+      (function () {
+        var redirect = new URLSearchParams(location.search).get("redirect");
+        if (redirect) history.replaceState(null, "", redirect);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
