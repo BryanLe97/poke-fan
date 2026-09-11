@@ -157,18 +157,6 @@ not a second build.
 
 ## Trade-offs
 
-**Animation** — no custom-designed motion (page transitions, staggered
-reveals, spring physics); relied on Tailwind's built-in utility
-transitions instead: hover scale on card images and the favourite button
-(`PokemonCard.tsx`), an `animate-pulse` loading skeleton
-(`PokemonCardSkeleton.tsx`), a scaling top-of-page navigation progress
-bar (`Layout.tsx`), and stat bars that transition their width
-(`PokemonDetailPage.tsx`). Motion/animation design isn't a strength, so
-this stayed within what Tailwind gives for free rather than reaching for
-a library (Framer Motion) or hand-rolling keyframes — a reasonable scope
-call here, but a real animation pass would be one of the first things to
-revisit with more time or a design partner.
-
 **Search history is `replace`d, not `push`ed** — typing "pika" then
 "char" without navigating away only leaves "char" in browser history;
 Back skips past both straight to wherever you were before you started
@@ -191,10 +179,4 @@ hosts.
 - **Research animation properly** — the small Tailwind transitions in
   place (see Trade-offs above) are a placeholder, not a considered
   motion design; worth learning this area properly rather than picking
-  up a library and guessing at what looks right.
-- **Automate a regression test for the GitHub Pages 404 fix**
-  (`public/404.html` + the restore script in `index.html`) — verified
-  manually against a local static server built to match GitHub Pages'
-  real 404-serving behavior, since `vite preview` (what the E2E suite
-  runs against) does its own SPA fallback and never actually 404s, so it
-  can't catch a regression here.
+  up a library and guessing at what looks right.  
