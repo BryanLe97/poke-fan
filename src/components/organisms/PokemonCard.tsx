@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
-import type { FavouritePokemon } from "../types/pokemon";
-import { useFavouritesStore } from "../store/useFavouritesStore";
-import { TypeBadge } from "./TypeBadge";
+import type { FavouritePokemon } from "../../types/pokemon";
+import { useFavouritesStore } from "../../store/useFavouritesStore";
+import { TypeBadge } from "../atoms/TypeBadge";
 import { GroupPicker } from "./GroupPicker";
 
 // Only the fields a card actually renders — a full Pokemon detail satisfies

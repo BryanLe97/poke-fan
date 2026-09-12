@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { Menu, Sparkles, Star, X } from "lucide-react";
-import { useFavouritesStore } from "../store/useFavouritesStore";
+import { useFavouritesStore } from "../../store/useFavouritesStore";
 
 const links = [
   { to: "/", label: "Browse", end: true },

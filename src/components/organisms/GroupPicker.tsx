@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FolderPlus, Plus } from "lucide-react";
-import { useFavouritesStore } from "../store/useFavouritesStore";
-import { useClickOutside } from "../hooks/useClickOutside";
+import { useFavouritesStore } from "../../store/useFavouritesStore";
+import { useClickOutside } from "../../hooks/useClickOutside";
 
 /**
  * Combobox for assigning a favourited Pokemon to one or more groups: type

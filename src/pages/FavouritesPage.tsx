@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { FolderPlus, Star, Trash2 } from "lucide-react";
 import { useFavouritesStore } from "../store/useFavouritesStore";
-import { PokemonCard } from "../components/PokemonCard";
-import { EmptyState } from "../components/EmptyState";
+import { PokemonCard } from "../components/organisms/PokemonCard";
+import { EmptyState } from "../components/molecules/EmptyState";
 
 export function FavouritesPage() {
   const favourites = useFavouritesStore((s) => s.favourites);

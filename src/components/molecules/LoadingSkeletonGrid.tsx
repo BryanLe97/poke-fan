@@ -1,4 +1,4 @@
-import { PokemonCardSkeleton } from "./PokemonCardSkeleton";
+import { PokemonCardSkeleton } from "../atoms/PokemonCardSkeleton";
 
 /** Used only where we don't have individual Pokemon to key skeletons by
  *  yet — i.e. the very first load, before the name index has arrived. Once

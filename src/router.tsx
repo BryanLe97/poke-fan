@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router-dom";
 import { createBrowserRouter } from "react-router-dom";
-import { Layout } from "./components/Layout";
+import { Layout } from "./components/organisms/Layout";
 import { BrowsePage } from "./pages/BrowsePage";
 import { FavouritesPage } from "./pages/FavouritesPage";
 import { PokemonDetailError, PokemonDetailPage } from "./pages/PokemonDetailPage";

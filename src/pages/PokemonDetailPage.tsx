@@ -10,9 +10,9 @@ import { ArrowLeft, Star } from "lucide-react";
 import { resetPokemonDetail } from "../api/pokemonResource";
 import type { Pokemon } from "../types/pokemon";
 import { useFavouritesStore } from "../store/useFavouritesStore";
-import { TypeBadge } from "../components/TypeBadge";
-import { GroupPicker } from "../components/GroupPicker";
-import { ErrorState } from "../components/ErrorState";
+import { TypeBadge } from "../components/atoms/TypeBadge";
+import { GroupPicker } from "../components/organisms/GroupPicker";
+import { ErrorState } from "../components/molecules/ErrorState";
 
 /** Shared by the success and error views so "Back" is always there, even
  *  when the route's errorElement replaces everything else. Uses browser
