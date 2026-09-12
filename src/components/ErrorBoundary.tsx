@@ -15,11 +15,12 @@ interface State {
  * data hooks report a failed fetch — and renders `fallback` instead of
  * crashing the page.
  *
- * `retry` just clears the caught error so children re-render; that alone
- * is enough to actually retry because the resources in
- * src/api/pokemonResource.ts evict a failed fetch from their cache on
- * rejection, so the next render's `use()` call fetches fresh instead of
- * replaying the same rejection.
+ * `retry` only clears the caught error so children re-render — it does
+ * NOT clear the underlying cache. The resources in
+ * src/api/pokemonResource.ts deliberately keep a rejected promise cached
+ * (see that file for why), so callers must evict the specific entry
+ * themselves — e.g. `resetPokemonDetail(name)` — before calling `retry`,
+ * or the next render's `use()` call just replays the same rejection.
  */
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };

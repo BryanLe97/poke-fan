@@ -2,10 +2,8 @@ import { useEffect, useRef, type RefObject } from "react";
 
 /**
  * Calls `onOutsideClick` on any pointerdown outside the element `ref`
- * points to. Built for closing a native <details> disclosure — which has
- * no built-in "click outside to close" behaviour — by setting its `open`
- * property to false from the callback, without lifting that state into
- * React and fighting the browser's own toggle handling.
+ * points to. Used by GroupPicker to close its dropdown (a controlled
+ * `open` state, not a native <details>) when the user clicks elsewhere.
  */
 export function useClickOutside<T extends HTMLElement>(
   ref: RefObject<T | null>,

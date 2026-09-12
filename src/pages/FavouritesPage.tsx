@@ -27,7 +27,7 @@ export function FavouritesPage() {
           .map((name) => favourites[name])
           .filter(Boolean);
 
-  function handleCreateGroup(e: React.FormEvent) {
+  function handleCreateGroup(e: React.SubmitEvent) {
     e.preventDefault();
     const name = newGroupName.trim();
     if (!name) return;
@@ -66,6 +66,7 @@ export function FavouritesPage() {
           <button
             type="button"
             onClick={() => setActiveGroupId("all")}
+            aria-current={activeGroupId === "all" ? "true" : undefined}
             className={`flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
               activeGroupId === "all"
                 ? "bg-red-600 text-white"
@@ -83,6 +84,7 @@ export function FavouritesPage() {
               <button
                 type="button"
                 onClick={() => setActiveGroupId(group.id)}
+                aria-current={activeGroupId === group.id ? "true" : undefined}
                 className={`flex flex-1 items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium capitalize transition-colors ${
                   activeGroupId === group.id
                     ? "bg-red-600 text-white"

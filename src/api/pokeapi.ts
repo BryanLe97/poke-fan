@@ -57,7 +57,3 @@ export async function fetchPokemonByName(
   return request<PokemonDetailResponse>(`/pokemon/${name}`, signal);
 }
 
-export function idFromResourceUrl(url: string): number {
-  const match = /\/(\d+)\/?$/.exec(url);
-  return match ? Number(match[1]) : 0;
-}
