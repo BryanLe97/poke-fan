@@ -115,11 +115,46 @@ fetches the full ~1300-entry name index once (cheap — just name+url
 pairs, cached for the session) and does its own filtering *and*
 pagination against that list on the frontend.
 
+## Why `use()` + Suspense instead of `useState`/`useEffect` for data
+
+Before React 19, fetching in a component meant hand-rolling three
+pieces of state per fetch — `data`, `loading`, `error` — plus a
+`useEffect` with its own cancelled-flag or `AbortController` to avoid
+setting state after unmount, repeated at every call site that fetches
+anything. React 19's `use(promise)` reads a promise's state directly
+during render instead:
+
+- **Pending** — `use()` suspends the component (throws the promise
+  itself); the nearest `<Suspense fallback>` shows instead, and React
+  automatically re-renders the component once the promise settles.
+- **Resolved** — `use()` returns the value; the component renders
+  normally.
+- **Rejected** — `use()` re-throws the rejection as a render error, for
+  the nearest `<ErrorBoundary>` to catch (see "How `ErrorBoundary`
+  itself works" below).
+
+No local `loading`/`error` state, no manual cleanup — `usePokemonDetail`
+and `useAllPokemonNames` (`src/hooks/`) are each just a one-line
+`use(...)` wrapper.
+
+`use()` is also the one hook allowed to be called conditionally (inside
+an `if`, after an early return) — unlike every other hook, it isn't
+tracking state across renders itself, it's just reading whatever
+promise/context reference it's handed at call time.
+
+That last point is exactly why it's handed a *cached* promise rather
+than a fresh one — see below.
+
 ## Why the fetch cache is a plain module-level Map
 
-`detailCache` (in `pokemonResource.ts`) is a `Map` at module scope, not
-component state — a singleton shared by every importer, so navigating
-away and back resolves from cache instead of re-fetching.
+`use()` needs the *same* promise reference across renders — calling
+`fetch(...).then(...)` directly inside a hook would create a brand new,
+still-pending promise on every render (including React's own retry
+after a Suspense fallback), so `use()` would suspend forever, never
+living long enough to resolve. `detailCache` (in `pokemonResource.ts`)
+is a `Map` at module scope, not component state — a singleton shared by
+every importer, so the same name always gets the same promise back, and
+navigating away and back resolves from cache instead of re-fetching.
 
 Not worried about unbounded growth: the key is a Pokemon name, capped at
 PokeAPI's own ~1300 total — not arbitrary input — so it tops out at a
@@ -144,6 +179,42 @@ already in the same cache from Browse — so instead of a hand-rolled
 Suspense boundary, it uses React Router's own `loader`
 (`pokemonDetailLoader` in `router.tsx`), awaited before the route
 renders, with `errorElement` for a failed fetch, via `<Outlet>`.
+
+**How `ErrorBoundary` itself works** (`src/components/ErrorBoundary.tsx`):
+it implements `getDerivedStateFromError`, which React calls automatically
+whenever a render error is thrown by any child underneath it — including
+`use()` re-throwing a rejected promise, how Suspense reports a failed
+fetch. Once it's caught an error, it stops rendering `children` and
+renders `fallback(error, retry)` instead, so each call site decides its
+own error UI (`ErrorState` for a full page, `PokemonCardError` for a
+single grid slot). `retry` only clears the caught error so children
+render again — it doesn't refetch anything itself. The caller is
+responsible for evicting the right cache entry first
+(`resetPokemonDetail`/`resetAllPokemonNames`), or the same rejected
+promise just gets replayed.
+
+**Why `src/components/` is split into `atoms/`, `molecules/`, and
+`organisms/`**: atomic-design folders, the way a Storybook-organized
+component library would be laid out, so each file's place on disk tells
+you its reuse scope before you even open it.
+
+- **`atoms/`** — smallest, self-contained UI pieces with no dependency
+  on any other local component: `TypeBadge`, `PokemonCardSkeleton`.
+- **`molecules/`** — a few elements working together as one reusable
+  unit: `SearchBar`, `Pagination`, `EmptyState`, `ErrorState`,
+  `PokemonCardError`, and `LoadingSkeletonGrid` (which composes the
+  `PokemonCardSkeleton` atom into a full grid — used only for the one
+  case with no per-item slot yet, the very first load before the name
+  index arrives; see `PokemonCardSlot` in `BrowsePage.tsx` for the
+  normal per-card case).
+- **`organisms/`** — larger sections composed from atoms/molecules and
+  wired to app state or routing: `PokemonCard` (TypeBadge + GroupPicker),
+  `GroupPicker`, `NavBar`, `Layout`.
+
+`ErrorBoundary` is deliberately kept at `components/` root, outside the
+three tiers — it renders no markup of its own (just `children` or
+`fallback`), so it's behavior, not a UI building block atomic design
+actually classifies.
 
 ## CI/CD
 
